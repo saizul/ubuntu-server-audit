@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+      - name: Ruff
+        run: |
+          ruff check .
+          ruff format --check .
+
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+      - name: Test
+        run: pytest
+      - name: CLI smoke test (normal user, no root-only paths)
+        # Runs as the unprivileged runner user. The web root and the reports live in /tmp, so nothing under
+        # /home or other root-only paths is needed; root-only checks must come back as "skipped (needs root)".
+        run: |
+          ubuntu-server-audit --version
+          ubuntu-server-audit --list-checks
+          ubuntu-server-audit --print-sysctl > /dev/null
+          WEB="$(mktemp -d /tmp/usa-www.XXXXXX)"
+          OUT="$(mktemp -d /tmp/usa-out.XXXXXX)"
+          mkdir -p "$WEB/site/uploads"
+          echo '<?php' > "$WEB/site/index.php"
+          chmod 0777 "$WEB/site/uploads"
+          ubuntu-server-audit -f all -o "$OUT" --web-root "$WEB" --max-files 50000
+          python - "$OUT/server-audit.json" <<'PY'
+          import json, sys
+          d = json.load(open(sys.argv[1]))
+          assert d["host"]["is_root"] is False, d["host"]
+          by_id = {f["id"]: f for f in d["findings"]}
+          for check_id in ("FW-001", "FW-002", "USR-001", "USR-003"):
+              assert by_id[check_id]["status_text"] == "skipped (needs root)", by_id[check_id]
+          assert by_id["USR-004"]["status"] == "fail", by_id["USR-004"]
+          assert any("uploads" in e for e in by_id["USR-004"]["evidence"]), by_id["USR-004"]
+          assert 0 <= d["score"]["score"] <= 100
+          errors = [(f["id"], f["summary"]) for f in d["findings"] if f["status"] == "error"]
+          print("score", d["score"], "errors", errors)
+          PY
+          test -s "$OUT/server-audit.html"
+          test -s "$OUT/server-audit.md"
+          test -s "$OUT/server-audit.txt"
+          # A failing high-severity check must fail the build when asked to.
+          set +e
+          ubuntu-server-audit --only USR-004 --web-root "$WEB" --fail-on high -q
+          code=$?
+          set -e
+          test "$code" -eq 1
+          python examples/library_usage.py > /dev/null
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t ubuntu-server-audit:ci .
+      - run: docker run --rm ubuntu-server-audit:ci --version
+      - name: Audit the container itself (unprivileged)
+        run: |
+          docker run --rm ubuntu-server-audit:ci -f json > "$RUNNER_TEMP/container.json"
+          python3 -c "import json, sys; d = json.load(open(sys.argv[1])); assert d['findings'], d" \
+            "$RUNNER_TEMP/container.json"

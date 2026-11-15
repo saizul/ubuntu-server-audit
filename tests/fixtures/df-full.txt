@@ -1,0 +1,3 @@
+Filesystem     1024-blocks     Used Available Capacity Mounted on
+/dev/vda1         25215872 23954000   1261872      95% /
+/dev/vdb1        103081248 84000000  19081248      82% /var/lib/mysql

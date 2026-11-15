@@ -1,0 +1,20 @@
+# Weekly audit as root, reports in /var/lib/ubuntu-server-audit/.
+# Install:
+#   sudo cp ubuntu-server-audit.service ubuntu-server-audit.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now ubuntu-server-audit.timer
+[Unit]
+Description=Read-only security audit (ubuntu-server-audit)
+Documentation=https://github.com/saizul/ubuntu-server-audit
+
+[Service]
+Type=oneshot
+StateDirectory=ubuntu-server-audit
+StateDirectoryMode=0700
+ExecStart=/usr/local/bin/ubuntu-server-audit -f all -o /var/lib/ubuntu-server-audit -q
+# The audit only reads; keep it that way.
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+NoNewPrivileges=true
+Nice=10
+IOSchedulingClass=idle

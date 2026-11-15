@@ -1,0 +1,2 @@
+Filesystem      Inodes  IUsed   IFree IUse% Mounted on
+/dev/sda1      5160960 210000 4950960    5% /

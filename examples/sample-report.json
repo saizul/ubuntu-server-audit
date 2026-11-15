@@ -1,0 +1,882 @@
+{
+  "tool": "ubuntu-server-audit",
+  "version": "0.1.0",
+  "schema": 1,
+  "started_at": "2026-11-15T12:00:00+00:00",
+  "duration_s": 0.4,
+  "host": {
+    "hostname": "web1",
+    "os": "Ubuntu 22.04.5 LTS",
+    "os_id": "ubuntu",
+    "os_version": "22.04",
+    "kernel": "6.8.0-48-generic",
+    "uptime_s": 864000.12,
+    "user": "root",
+    "is_root": true
+  },
+  "score": {
+    "score": 8,
+    "grade": "F",
+    "scored_checks": 36,
+    "applicable_checks": 36,
+    "skipped_needs_root": 0,
+    "earned": 11.5,
+    "possible": 145.0
+  },
+  "counts": {
+    "pass": 1,
+    "warn": 9,
+    "fail": 26,
+    "info": 2,
+    "skipped": 0,
+    "n/a": 1,
+    "error": 0
+  },
+  "findings": [
+    {
+      "id": "SSH-001",
+      "title": "Root login over SSH is disabled",
+      "category": "ssh",
+      "severity": "high",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "root can log in with a password",
+      "evidence": [
+        "permitrootlogin yes",
+        "source: sshd -T (effective configuration)"
+      ],
+      "fix": "Set 'PermitRootLogin no' in /etc/ssh/sshd_config.d/50-hardening.conf, log in as a normal user with sudo, then run 'sshd -t && systemctl reload ssh'.",
+      "references": [
+        "https://manpages.ubuntu.com/manpages/noble/man5/sshd_config.5.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "SSH-002",
+      "title": "Password authentication is disabled",
+      "category": "ssh",
+      "severity": "high",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "passwords are accepted (brute-force target)",
+      "evidence": [
+        "passwordauthentication yes",
+        "source: sshd -T (effective configuration)"
+      ],
+      "fix": "After confirming key-based login works, set 'PasswordAuthentication no' and reload ssh. Check files in /etc/ssh/sshd_config.d/ (cloud images often re-enable it there).",
+      "references": [
+        "https://manpages.ubuntu.com/manpages/noble/man5/sshd_config.5.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "SSH-003",
+      "title": "Keyboard-interactive authentication is disabled",
+      "category": "ssh",
+      "severity": "medium",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "PAM keyboard-interactive login can accept passwords",
+      "evidence": [
+        "kbdinteractiveauthentication yes",
+        "usepam yes",
+        "source: sshd -T (effective configuration)"
+      ],
+      "fix": "Set 'KbdInteractiveAuthentication no' (ChallengeResponseAuthentication on older releases) unless you use it for two-factor login.",
+      "references": [
+        "https://manpages.ubuntu.com/manpages/noble/man5/sshd_config.5.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "SSH-004",
+      "title": "Empty passwords are refused",
+      "category": "ssh",
+      "severity": "critical",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "accounts without a password can log in",
+      "evidence": [
+        "permitemptypasswords yes",
+        "source: sshd -T (effective configuration)"
+      ],
+      "fix": "Set 'PermitEmptyPasswords no' (the default) and give every account a password or lock it.",
+      "references": [
+        "https://manpages.ubuntu.com/manpages/noble/man5/sshd_config.5.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "SSH-005",
+      "title": "No weak ciphers, MACs or key exchange algorithms",
+      "category": "ssh",
+      "severity": "medium",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "5 weak algorithm(s) enabled",
+      "evidence": [
+        "ciphers: aes128-cbc",
+        "ciphers: 3des-cbc",
+        "macs: hmac-md5",
+        "kexalgorithms: diffie-hellman-group14-sha1",
+        "kexalgorithms: diffie-hellman-group1-sha1",
+        "source: sshd -T (effective configuration)",
+        "legacy but not broken: macs: hmac-sha1"
+      ],
+      "fix": "Remove CBC/arcfour ciphers, MD5/SHA1-96 MACs and SHA1 key exchanges from Ciphers, MACs and KexAlgorithms, or delete those lines to use the OpenSSH defaults.",
+      "references": [
+        "https://manpages.ubuntu.com/manpages/noble/man5/sshd_config.5.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "SSH-006",
+      "title": "MaxAuthTries is 4 or lower",
+      "category": "ssh",
+      "severity": "low",
+      "status": "warn",
+      "status_text": "warn",
+      "summary": "MaxAuthTries is 6",
+      "evidence": [
+        "maxauthtries 6",
+        "source: sshd -T (effective configuration)"
+      ],
+      "fix": "Set 'MaxAuthTries 3' to slow down password guessing per connection.",
+      "references": [
+        "https://manpages.ubuntu.com/manpages/noble/man5/sshd_config.5.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "SSH-007",
+      "title": "X11 forwarding is disabled",
+      "category": "ssh",
+      "severity": "low",
+      "status": "warn",
+      "status_text": "warn",
+      "summary": "X11 forwarding is on",
+      "evidence": [
+        "x11forwarding yes",
+        "source: sshd -T (effective configuration)"
+      ],
+      "fix": "Set 'X11Forwarding no'; a web server has no use for it (Ubuntu's shipped sshd_config turns it on).",
+      "references": [
+        "https://manpages.ubuntu.com/manpages/noble/man5/sshd_config.5.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "SSH-008",
+      "title": "LoginGraceTime is 60 seconds or less",
+      "category": "ssh",
+      "severity": "low",
+      "status": "warn",
+      "status_text": "warn",
+      "summary": "LoginGraceTime is 120s",
+      "evidence": [
+        "logingracetime 120",
+        "source: sshd -T (effective configuration)"
+      ],
+      "fix": "Set 'LoginGraceTime 30' so unauthenticated connections do not hold slots for two minutes.",
+      "references": [
+        "https://manpages.ubuntu.com/manpages/noble/man5/sshd_config.5.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "SSH-009",
+      "title": "SSH logins are limited to named users or groups",
+      "category": "ssh",
+      "severity": "info",
+      "status": "info",
+      "status_text": "info",
+      "summary": "no AllowUsers/AllowGroups: every account with a key or password can log in",
+      "evidence": [
+        "port 22",
+        "source: sshd -T (effective configuration)"
+      ],
+      "fix": "Optionally add 'AllowGroups sshusers' (or AllowUsers) so new system accounts cannot log in by accident.",
+      "references": [
+        "https://manpages.ubuntu.com/manpages/noble/man5/sshd_config.5.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "FW-001",
+      "title": "A host firewall is active",
+      "category": "firewall",
+      "severity": "high",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "no host firewall filters incoming traffic",
+      "evidence": [
+        "ufw: inactive"
+      ],
+      "fix": "sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw enable (allow your SSH port first).",
+      "references": [
+        "https://ubuntu.com/server/docs/how-to/security/firewalls/"
+      ],
+      "needs_root": true,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "FW-002",
+      "title": "Incoming traffic is denied by default",
+      "category": "firewall",
+      "severity": "medium",
+      "status": "n/a",
+      "status_text": "n/a",
+      "summary": "no active firewall (see FW-001)",
+      "evidence": [],
+      "fix": "sudo ufw default deny incoming && sudo ufw default allow outgoing",
+      "references": [
+        "https://ubuntu.com/server/docs/how-to/security/firewalls/"
+      ],
+      "needs_root": true,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "FW-003",
+      "title": "Listening network services (inventory)",
+      "category": "firewall",
+      "severity": "info",
+      "status": "info",
+      "status_text": "info",
+      "summary": "7 public and 2 local listening sockets",
+      "evidence": [
+        "reachable from the network: 7",
+        "tcp 0.0.0.0:3306",
+        "tcp *:6379",
+        "tcp 0.0.0.0:22",
+        "tcp 0.0.0.0:80",
+        "tcp 0.0.0.0:443",
+        "tcp [::]:80",
+        "tcp [::]:22",
+        "local only: 2",
+        "udp 127.0.0.53%lo:53",
+        "tcp 127.0.0.53%lo:53"
+      ],
+      "fix": "Stop services you do not need, or bind them to 127.0.0.1.",
+      "references": [],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "FW-004",
+      "title": "Databases and internal services are not exposed",
+      "category": "firewall",
+      "severity": "high",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "2 internal service(s) reachable from the network",
+      "evidence": [
+        "tcp 0.0.0.0:3306 - MySQL/MariaDB",
+        "tcp *:6379 - Redis"
+      ],
+      "fix": "Bind the service to 127.0.0.1 (or a private interface) in its configuration and restart it; if it must listen publicly, allow only specific source addresses in the firewall.",
+      "references": [],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "FW-005",
+      "title": "fail2ban protects SSH",
+      "category": "firewall",
+      "severity": "medium",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "fail2ban is not installed",
+      "evidence": [],
+      "fix": "sudo apt install fail2ban; Ubuntu enables the sshd jail by default. Check with 'sudo fail2ban-client status sshd'.",
+      "references": [
+        "https://github.com/fail2ban/fail2ban"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "UPD-001",
+      "title": "Automatic security updates are enabled",
+      "category": "updates",
+      "severity": "high",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "unattended-upgrades is not installed",
+      "evidence": [],
+      "fix": "sudo apt install unattended-upgrades && sudo dpkg-reconfigure -plow unattended-upgrades (writes /etc/apt/apt.conf.d/20auto-upgrades with APT::Periodic::Unattended-Upgrade \"1\").",
+      "references": [
+        "https://ubuntu.com/server/docs/how-to/software/automatic-updates/"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "UPD-002",
+      "title": "No pending security updates",
+      "category": "updates",
+      "severity": "high",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "2 security update(s) pending",
+      "evidence": [
+        "3 upgradable, 2 from -security",
+        "libssl3",
+        "openssl",
+        "package lists updated 40.0 day(s) ago"
+      ],
+      "fix": "sudo apt update && sudo apt upgrade (or wait for unattended-upgrades); then check reboot-required.",
+      "references": [
+        "https://ubuntu.com/server/docs/how-to/software/automatic-updates/"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "UPD-003",
+      "title": "No reboot is pending",
+      "category": "updates",
+      "severity": "medium",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "a reboot is required to finish installing updates",
+      "evidence": [
+        "/var/run/reboot-required exists",
+        "package: libssl3",
+        "package: linux-base"
+      ],
+      "fix": "Schedule a reboot (sudo reboot) so the updated kernel and libraries are used, or set Unattended-Upgrade::Automatic-Reboot \"true\" with a quiet Automatic-Reboot-Time.",
+      "references": [
+        "https://ubuntu.com/server/docs/how-to/software/automatic-updates/"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "UPD-004",
+      "title": "Package lists are recent",
+      "category": "updates",
+      "severity": "low",
+      "status": "warn",
+      "status_text": "warn",
+      "summary": "package lists are 40 days old; pending updates may be missed",
+      "evidence": [
+        "last update 40.0 day(s) ago (limit 7)"
+      ],
+      "fix": "sudo apt update; make sure APT::Periodic::Update-Package-Lists is \"1\" so this happens daily.",
+      "references": [],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "UPD-005",
+      "title": "The Ubuntu release is supported",
+      "category": "updates",
+      "severity": "high",
+      "status": "pass",
+      "status_text": "pass",
+      "summary": "Ubuntu 22.04.5 LTS is a supported LTS release",
+      "evidence": [
+        "Ubuntu 22.04.5 LTS (ID=ubuntu, VERSION_ID=22.04)"
+      ],
+      "fix": "Upgrade to a supported LTS release (do-release-upgrade) or enable Ubuntu Pro for extended security maintenance.",
+      "references": [
+        "https://ubuntu.com/about/release-cycle"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "KRN-001",
+      "title": "Network stack hardening (sysctl)",
+      "category": "kernel",
+      "severity": "medium",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "5 of 16 network settings are not hardened",
+      "evidence": [
+        "net.ipv4.conf.all.accept_redirects = 1 (recommended 0: ignore ICMP redirects)",
+        "net.ipv4.conf.all.send_redirects = 1 (recommended 0: a server is not a router)",
+        "net.ipv4.conf.default.send_redirects = 1 (recommended 0: a server is not a router)",
+        "net.ipv4.conf.all.rp_filter = 0 (recommended 1: reverse path filtering against spoofing)",
+        "net.ipv4.conf.all.log_martians = 0 (recommended 1: log impossible addresses)"
+      ],
+      "fix": "Add to /etc/sysctl.d/60-hardening.conf:\n  net.ipv4.conf.all.accept_redirects = 0\n  net.ipv4.conf.all.send_redirects = 0\n  net.ipv4.conf.default.send_redirects = 0\n  net.ipv4.conf.all.rp_filter = 1\n  net.ipv4.conf.all.log_martians = 1\nthen run: sudo sysctl --system",
+      "references": [
+        "https://docs.kernel.org/networking/ip-sysctl.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "KRN-002",
+      "title": "Kernel and filesystem hardening (sysctl)",
+      "category": "kernel",
+      "severity": "low",
+      "status": "warn",
+      "status_text": "warn",
+      "summary": "1 of 9 kernel settings are not hardened",
+      "evidence": [
+        "kernel.dmesg_restrict = 0 (recommended 1: only root reads the kernel log)"
+      ],
+      "fix": "Add to /etc/sysctl.d/60-hardening.conf:\n  kernel.dmesg_restrict = 1\nthen run: sudo sysctl --system",
+      "references": [
+        "https://docs.kernel.org/admin-guide/sysctl/kernel.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "KRN-003",
+      "title": "IP forwarding is off unless the host routes traffic",
+      "category": "kernel",
+      "severity": "low",
+      "status": "warn",
+      "status_text": "warn",
+      "summary": "the host forwards packets but no container or VPN software was found",
+      "evidence": [
+        "net.ipv4.ip_forward = 1",
+        "net.ipv6.conf.all.forwarding = 0"
+      ],
+      "fix": "If this host does not run containers or a VPN, set net.ipv4.ip_forward = 0 in /etc/sysctl.d/60-hardening.conf; Docker, LXD and WireGuard need it on.",
+      "references": [
+        "https://docs.kernel.org/networking/ip-sysctl.html"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "USR-001",
+      "title": "No account has an empty password",
+      "category": "accounts",
+      "severity": "critical",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "1 account(s) without a password",
+      "evidence": [
+        "account: deploy"
+      ],
+      "fix": "Lock the account (sudo passwd -l NAME) or set a password (sudo passwd NAME).",
+      "references": [],
+      "needs_root": true,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "USR-002",
+      "title": "Only root has UID 0",
+      "category": "accounts",
+      "severity": "critical",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "1 other account(s) with UID 0",
+      "evidence": [
+        "UID 0: toor",
+        "login accounts (UID >= 1000): admin, deploy"
+      ],
+      "fix": "Give the extra account a normal UID (usermod -u) or delete it; use sudo for administrators.",
+      "references": [],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "USR-003",
+      "title": "sudo asks for a password (no NOPASSWD rules)",
+      "category": "accounts",
+      "severity": "medium",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "2 NOPASSWD rule(s) allowing every command",
+      "evidence": [
+        "/etc/sudoers.d/90-cloud-init-users: ubuntu ALL=(ALL) NOPASSWD:ALL",
+        "/etc/sudoers.d/deploy: deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload nginx",
+        "files read: 4"
+      ],
+      "fix": "Remove NOPASSWD from the listed rules (cloud images add one for the default user in /etc/sudoers.d/90-cloud-init-users), or limit it to specific commands.",
+      "references": [],
+      "needs_root": true,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "USR-004",
+      "title": "No world-writable files in web roots",
+      "category": "accounts",
+      "severity": "high",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "2 world-writable path(s) in web roots",
+      "evidence": [
+        "/var/www/html/index.php (0o666)",
+        "/var/www/html/wp-content/uploads (0o777, directory)",
+        "web roots: /var/www",
+        "entries checked: 5"
+      ],
+      "fix": "chmod o-w the listed paths (find WEBROOT -perm -0002 -exec chmod o-w {} +); give write access to the PHP-FPM user through group ownership of specific upload directories only.",
+      "references": [],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": "some directories could not be read",
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "USR-005",
+      "title": "setuid/setgid programs (review list)",
+      "category": "accounts",
+      "severity": "medium",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "1 setuid/setgid program(s) writable by non-root users",
+      "evidence": [
+        "/usr/local/bin/helper (setuid, world-writable)",
+        "setuid/setgid programs: 7, not on the Ubuntu default list: 2",
+        "/usr/local/bin/helper (setuid)",
+        "/usr/local/bin/oldtool (setgid)",
+        "known: mount, passwd, su, sudo, ssh-keysign"
+      ],
+      "fix": "Investigate programs not installed by Ubuntu packages (dpkg -S PATH); remove the bit with chmod u-s,g-s if it is not needed. A setuid file writable by a non-root user is a root shell for that user.",
+      "references": [],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "WEB-001",
+      "title": "nginx hides its version (server_tokens off)",
+      "category": "web",
+      "severity": "low",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "server_tokens is not set; nginx sends its version (default on)",
+      "evidence": [
+        "source: /etc/nginx/nginx.conf and includes (3 files)"
+      ],
+      "fix": "Add 'server_tokens off;' to the http block of /etc/nginx/nginx.conf (Ubuntu ships it commented out), then 'sudo nginx -t && sudo systemctl reload nginx'.",
+      "references": [
+        "https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "WEB-002",
+      "title": "nginx allows only TLS 1.2 and 1.3",
+      "category": "web",
+      "severity": "high",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "old protocols enabled: TLSv1, TLSv1.1",
+      "evidence": [
+        "/etc/nginx/nginx.conf [http]: ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3",
+        "TLS listeners: yes",
+        "source: /etc/nginx/nginx.conf and includes (3 files)"
+      ],
+      "fix": "Set 'ssl_protocols TLSv1.2 TLSv1.3;' in the http block (Ubuntu 22.04's nginx.conf still lists TLSv1 and TLSv1.1) and in any server block that overrides it.",
+      "references": [
+        "https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_protocols"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "WEB-003",
+      "title": "PHP does not advertise itself (expose_php = Off)",
+      "category": "web",
+      "severity": "low",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "X-Powered-By header sent by PHP 8.1 fpm",
+      "evidence": [
+        "PHP 8.1 fpm: expose_php = On (/etc/php/8.1/fpm/php.ini)"
+      ],
+      "fix": "Set 'expose_php = Off' in /etc/php/VERSION/fpm/php.ini (or a conf.d override) and restart PHP-FPM.",
+      "references": [
+        "https://www.php.net/manual/en/ini.core.php"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "WEB-004",
+      "title": "PHP does not display errors to visitors",
+      "category": "web",
+      "severity": "medium",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "errors are shown to visitors by PHP 8.1 fpm",
+      "evidence": [
+        "PHP 8.1 fpm: display_errors = on (/etc/php/8.1/fpm/pool.d/www.conf)"
+      ],
+      "fix": "Set 'display_errors = Off' and 'log_errors = On' in php.ini and in pool files (php_admin_flag[display_errors] = off), then restart PHP-FPM.",
+      "references": [
+        "https://www.php.net/manual/en/ini.core.php"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "DB-001",
+      "title": "MariaDB/MySQL is not listening on all interfaces",
+      "category": "database",
+      "severity": "high",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "the database accepts connections from the network",
+      "evidence": [
+        "bind-address = 0.0.0.0 (/etc/mysql/mariadb.conf.d/50-server.cnf)",
+        "listening: tcp 0.0.0.0:3306"
+      ],
+      "fix": "Set 'bind-address = 127.0.0.1' in /etc/mysql/mariadb.conf.d/50-server.cnf (or mysql.conf.d/mysqld.cnf) and restart; for remote access use an SSH tunnel or a private network with firewall rules.",
+      "references": [
+        "https://mariadb.com/kb/en/configuring-mariadb-for-remote-client-access/"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "DB-002",
+      "title": "Redis is bound to localhost with protected mode on",
+      "category": "database",
+      "severity": "high",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "Redis is reachable from the network: bound to a public address, protected-mode is off, reachable without a password",
+      "evidence": [
+        "listening publicly: tcp *:6379",
+        "bind (unset: all interfaces)",
+        "protected-mode no",
+        "password/ACL configured: no"
+      ],
+      "fix": "In /etc/redis/redis.conf set 'bind 127.0.0.1 -::1' and 'protected-mode yes', and require a password with requirepass or ACL users; then sudo systemctl restart redis-server.",
+      "references": [
+        "https://redis.io/docs/latest/operate/oss_and_stack/management/security/"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "HK-001",
+      "title": "Swap is configured",
+      "category": "housekeeping",
+      "severity": "low",
+      "status": "warn",
+      "status_text": "warn",
+      "summary": "no swap: memory spikes end in the out-of-memory killer",
+      "evidence": [
+        "RAM 1.0 GiB, swap 0.0 GiB"
+      ],
+      "fix": "Create a swap file: sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile, and add it to /etc/fstab. Small VPS plans often have none, so the kernel kills MariaDB or PHP-FPM under memory pressure.",
+      "references": [],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "HK-002",
+      "title": "Disks have free space",
+      "category": "housekeeping",
+      "severity": "medium",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "/ 95% space used",
+      "evidence": [
+        "/: 95% space used (/dev/vda1)",
+        "/var/lib/mysql: 82% space used (/dev/vdb1)"
+      ],
+      "fix": "Find large directories with 'sudo du -xh / --max-depth=2 | sort -h | tail'; clean old logs, backups, caches (apt clean, journalctl --vacuum-size=500M) or grow the disk.",
+      "references": [],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "HK-003",
+      "title": "Filesystems have free inodes",
+      "category": "housekeeping",
+      "severity": "medium",
+      "status": "warn",
+      "status_text": "warn",
+      "summary": "/ 85% inodes used",
+      "evidence": [
+        "/: 85% inodes used (/dev/vda1)"
+      ],
+      "fix": "Find directories with many small files (sessions, cache, mail queue): 'sudo find / -xdev -type d -size +1M' and clean them up.",
+      "references": [],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "HK-004",
+      "title": "The clock is synchronised (NTP)",
+      "category": "housekeeping",
+      "severity": "medium",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "time synchronisation is off",
+      "evidence": [
+        "NTP=no",
+        "NTPSynchronized=no",
+        "Timezone=Etc/UTC"
+      ],
+      "fix": "sudo timedatectl set-ntp true (systemd-timesyncd), or install chrony; TLS, logs and TOTP need a correct clock.",
+      "references": [
+        "https://ubuntu.com/server/docs/how-to/networking/timedatectl-and-timesyncd/"
+      ],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "HK-005",
+      "title": "The systemd journal has a size limit",
+      "category": "housekeeping",
+      "severity": "low",
+      "status": "warn",
+      "status_text": "warn",
+      "summary": "the journal uses 3.5 GiB",
+      "evidence": [
+        "SystemMaxUse not set (default: 10% of the filesystem, at most 4G)",
+        "journal size: 3584 MiB"
+      ],
+      "fix": "Set 'SystemMaxUse=500M' in /etc/systemd/journald.conf.d/size.conf, then sudo systemctl restart systemd-journald (or vacuum now: sudo journalctl --vacuum-size=500M).",
+      "references": [],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    },
+    {
+      "id": "HK-006",
+      "title": "Root cron jobs do not run writable scripts",
+      "category": "housekeeping",
+      "severity": "high",
+      "status": "fail",
+      "status_text": "fail",
+      "summary": "2 root cron path(s) can be modified by other users",
+      "evidence": [
+        "/var/www/html/cron.sh: owned by uid 33 - from /etc/cron.d/wordpress: /bin/sh /var/www/html/cron.sh > /dev/null 2>&1",
+        "/etc/cron.daily/backup: world-writable - from /etc/cron.daily: /etc/cron.daily/backup",
+        "root cron jobs: 6, paths checked: 5"
+      ],
+      "fix": "Make every script that root runs from cron owned by root and not writable by group or others (chown root:root FILE && chmod 755 FILE), including its directory. Run site tasks such as 'php artisan schedule:run' or wp-cron from the site user's crontab instead of root's.",
+      "references": [],
+      "needs_root": false,
+      "partial": false,
+      "partial_reason": null,
+      "skipped_reason": null,
+      "duration_ms": 0.0
+    }
+  ]
+}

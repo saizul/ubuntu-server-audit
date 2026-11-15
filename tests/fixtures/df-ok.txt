@@ -1,0 +1,3 @@
+Filesystem     1024-blocks     Used Available Capacity Mounted on
+/dev/sda1         81106868 20480000  60626868      26% /
+/dev/sda15          106832     6186    100646       6% /boot/efi

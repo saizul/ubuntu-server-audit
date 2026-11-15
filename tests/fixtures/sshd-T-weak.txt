@@ -1,0 +1,13 @@
+port 22
+usepam yes
+logingracetime 120
+maxauthtries 6
+permitrootlogin yes
+pubkeyauthentication yes
+passwordauthentication yes
+challengeresponseauthentication yes
+permitemptypasswords yes
+x11forwarding yes
+ciphers aes128-ctr,aes256-ctr,aes128-cbc,3des-cbc
+macs hmac-sha2-256,hmac-md5,hmac-sha1
+kexalgorithms curve25519-sha256,diffie-hellman-group14-sha1,diffie-hellman-group1-sha1

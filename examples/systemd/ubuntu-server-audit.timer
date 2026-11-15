@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly ubuntu-server-audit run
+
+[Timer]
+OnCalendar=Mon *-*-* 05:30:00
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
