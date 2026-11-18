@@ -194,3 +194,51 @@ class FakeFS:
                     continue
                 out.append(path)
         return sorted(out)
+
+
+def _der(tag: int, content: bytes) -> bytes:
+    n = len(content)
+    if n < 0x80:
+        length = bytes([n])
+    else:
+        raw = n.to_bytes((n.bit_length() + 7) // 8, "big")
+        length = bytes([0x80 | len(raw)]) + raw
+    return bytes([tag]) + length + content
+
+
+def _name(common_name: str) -> bytes:
+    attribute = _der(0x30, _der(0x06, b"\x55\x04\x03") + _der(0x0C, common_name.encode()))
+    return _der(0x30, _der(0x31, attribute))
+
+
+def _der_time(moment) -> bytes:
+    if 1950 <= moment.year < 2050:
+        return _der(0x17, moment.strftime("%y%m%d%H%M%SZ").encode())
+    return _der(0x18, moment.strftime("%Y%m%d%H%M%SZ").encode())
+
+
+def make_cert_der(common_name: str, not_before, not_after, issuer: str = "Test CA") -> bytes:
+    """A structurally valid (unsigned) X.509 certificate for tests."""
+    algorithm = _der(0x30, _der(0x06, b"\x2a\x86\x48\x86\xf7\x0d\x01\x01\x0b") + b"\x05\x00")
+    tbs = _der(
+        0x30,
+        _der(0xA0, _der(0x02, b"\x02"))
+        + _der(0x02, b"\x01\x23")
+        + algorithm
+        + _name(issuer)
+        + _der(0x30, _der_time(not_before) + _der_time(not_after))
+        + _name(common_name)
+        + _der(0x30, algorithm + _der(0x03, b"\x00\x00")),
+    )
+    return _der(0x30, tbs + algorithm + _der(0x03, b"\x00" + b"\x01" * 300))
+
+
+def make_pem(*certs: bytes) -> str:
+    import base64
+    import textwrap
+
+    blocks = []
+    for der in certs:
+        body = "\n".join(textwrap.wrap(base64.b64encode(der).decode(), 64))
+        blocks.append(f"-----BEGIN CERTIFICATE-----\n{body}\n-----END CERTIFICATE-----\n")
+    return "".join(blocks)

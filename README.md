@@ -72,7 +72,7 @@ for a full root run.)
 
 ## Features
 
-- **39 checks** in eight areas: SSH, firewall and network, updates, kernel, users and files, web server and PHP,
+- **40 checks** in eight areas: SSH, firewall and network, updates, kernel, users and files, web server and PHP,
   databases, housekeeping. `--list-checks` prints them.
 - **Effective SSH configuration** from `sshd -T` (what sshd really uses after `Include` files), with a fallback
   to reading `sshd_config` and `sshd_config.d/*.conf` for normal users, using sshd's "first value wins" rule.
@@ -210,6 +210,7 @@ sudo ubuntu-server-audit --only USR-004 --web-root /srv/sites --web-root /opt/ap
 | WEB-002 | high | nginx `ssl_protocols` has no SSLv3, TLSv1 or TLSv1.1 (warning when unset) | `nginx -T` |
 | WEB-003 | low | PHP `expose_php = Off` for FPM, Apache and CGI (CLI is ignored) | |
 | WEB-004 | medium | PHP `display_errors` off, including `php_flag`/`php_admin_flag` in FPM pools | |
+| WEB-005 | high | TLS certificates in nginx `ssl_certificate` (leaf and chain) are valid for more than 30 days (warn) and 7 days (fail); missing or unreadable files are reported | `/etc/letsencrypt` |
 | DB-001 | high | MariaDB/MySQL is not listening on a public address (`ss` plus `bind-address` from `/etc/mysql`) | |
 | DB-002 | high | Redis: no public listener, `bind` set to loopback, `protected-mode yes`, password or ACL present | `redis.conf` |
 | HK-001 | low | Swap is configured | |
@@ -218,6 +219,11 @@ sudo ubuntu-server-audit --only USR-004 --web-root /srv/sites --web-root /opt/ap
 | HK-004 | medium | Clock synchronised (`timedatectl show`: `NTP`, `NTPSynchronized`) | |
 | HK-005 | low | Journal below 2 GiB, `SystemMaxUse` not excessive | full usage |
 | HK-006 | high | Every path run by root's cron jobs (`/etc/crontab`, `/etc/cron.d`, root's crontab, `/etc/cron.{hourly,daily,weekly,monthly}`) and its directory is owned and writable by root only | root's crontab |
+
+WEB-005 reads the certificate files directly with a small built-in X.509 parser (no `openssl` call, so it also
+works with `--host-root`). Every certificate in a bundle counts, so an expiring intermediate is caught too; paths
+that use nginx variables are skipped and the result is marked partial. Let's Encrypt keeps its files readable by
+root only, so run as root for this check.
 
 "Effective config": as root, `sshd -T` is used. As a normal user `sshd -T` cannot read the host keys, so the files
 are read instead and the result is marked partial (`Match` blocks are not evaluated in that mode).
@@ -230,7 +236,7 @@ unattended-upgrades paths and keys follow the [Ubuntu Server automatic updates g
 
 | As root | As a normal user |
 | --- | --- |
-| all 39 checks | FW-001, FW-002, USR-001 and USR-003 are **skipped (needs root)**; FW-005 is skipped if fail2ban is running |
+| all 40 checks | FW-001, FW-002, USR-001 and USR-003 are **skipped (needs root)**; FW-005 is skipped if fail2ban is running |
 | `sshd -T`, `nginx -T`, `ufw status`, `nft list ruleset`, `fail2ban-client status` | config files are read instead where possible; results marked `(partial)` |
 | process names in the socket list | addresses and ports only |
 | `redis.conf`, root's crontab, all of `/var/www` | readable parts only, marked `(partial)` |
@@ -248,8 +254,8 @@ below 60.
 ## Configuration
 
 There is no configuration file: everything is a command-line option, so a cron job or systemd unit documents
-its own settings. Thresholds that can be tuned from Python (`AuditOptions`): disk warn/fail percentages, journal
-size limit, APT list age, file walk limit, number of listed items and the command timeout.
+its own settings. Thresholds that can be tuned from Python (`AuditOptions`): disk warn/fail percentages, certificate
+warn/fail days (`cert_warn_days=30`, `cert_fail_days=7`), journal size limit, APT list age, file walk limit, number of listed items and the command timeout.
 
 ```python
 from ubuntu_server_audit import AuditContext, AuditOptions, run_audit
