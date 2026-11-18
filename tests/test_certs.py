@@ -43,19 +43,23 @@ def test_parse_der_reads_subject_and_validity():
 
 
 def test_parse_der_generalized_time_and_utc_pivot():
-    cert = parse_der(make_cert_der("x", datetime(1999, 1, 1, tzinfo=timezone.utc),
-                                   datetime(2051, 6, 1, tzinfo=timezone.utc)))
+    cert = parse_der(
+        make_cert_der("x", datetime(1999, 1, 1, tzinfo=timezone.utc), datetime(2051, 6, 1, tzinfo=timezone.utc))
+    )
     assert cert.not_before.year == 1999 and cert.not_after.year == 2051
 
 
 def test_parse_pem_bundle_keeps_order():
-    pem = make_pem(make_cert_der("leaf", NOW, NOW + timedelta(days=90)),
-                   make_cert_der("intermediate", NOW, NOW + timedelta(days=900)))
+    pem = make_pem(
+        make_cert_der("leaf", NOW, NOW + timedelta(days=90)),
+        make_cert_der("intermediate", NOW, NOW + timedelta(days=900)),
+    )
     assert [c.subject for c in parse_pem("junk before\n" + pem)] == ["leaf", "intermediate"]
 
 
-@pytest.mark.parametrize("text", ["", "not a certificate",
-                                  "-----BEGIN CERTIFICATE-----\n!!!\n-----END CERTIFICATE-----"])
+@pytest.mark.parametrize(
+    "text", ["", "not a certificate", "-----BEGIN CERTIFICATE-----\n!!!\n-----END CERTIFICATE-----"]
+)
 def test_parse_pem_rejects_garbage(text):
     with pytest.raises(CertificateError):
         parse_pem(text)
@@ -98,8 +102,13 @@ def test_thresholds_come_from_options():
 def test_earliest_certificate_in_chain_decides():
     ctx = hardened_host()
     ctx.runner.set("nginx -T", ok(nginx(CERT)))
-    ctx.fs.add_file(CERT, make_pem(make_cert_der("example.com", NOW, NOW + timedelta(days=80)),
-                                   make_cert_der("Old CA", NOW, NOW + timedelta(days=5))))
+    ctx.fs.add_file(
+        CERT,
+        make_pem(
+            make_cert_der("example.com", NOW, NOW + timedelta(days=80)),
+            make_cert_der("Old CA", NOW, NOW + timedelta(days=5)),
+        ),
+    )
     finding = run(ctx)
     assert finding.status is Status.FAIL
     assert "Old CA" in finding.summary
