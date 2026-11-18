@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass
 
 from ubuntu_server_audit import nginx_conf
+from ubuntu_server_audit.certs import Certificate, CertificateError, parse_pem
 from ubuntu_server_audit.checks._common import cap
 from ubuntu_server_audit.context import AuditContext, NeedsRoot, NotApplicable
 from ubuntu_server_audit.model import Outcome, Severity, Status
@@ -16,6 +17,8 @@ from ubuntu_server_audit.registry import check
 NGINX_MAIN = "/etc/nginx/nginx.conf"
 NGINX_DOC = "https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens"
 NGINX_SSL_DOC = "https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_protocols"
+NGINX_CERT_DOC = "https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate"
+CERTBOT_DOC = "https://eff-certbot.readthedocs.io/en/stable/using.html#automated-renewals"
 PHP_DOC = "https://www.php.net/manual/en/ini.core.php"
 OLD_PROTOCOLS = ("SSLv2", "SSLv3", "TLSv1", "TLSv1.1")
 
@@ -108,6 +111,102 @@ def tls_protocols(ctx: AuditContext) -> Outcome:
             partial=info.partial,
         )
     raise NotApplicable("nginx has no TLS listeners")
+
+
+def _cert_path(path: str) -> str:
+    # nginx resolves relative paths against its prefix/conf directory.
+    return path if path.startswith("/") else posixpath.join("/etc/nginx", path)
+
+
+@check(
+    "WEB-005",
+    "TLS certificates used by nginx are not about to expire",
+    category="web",
+    severity=Severity.HIGH,
+    fix="Renew the certificate before it expires. For Let's Encrypt run 'sudo certbot renew --dry-run' to find out "
+    "why automatic renewal stopped, check 'systemctl list-timers' for certbot, then 'sudo nginx -t && sudo "
+    "systemctl reload nginx' so nginx loads the new file.",
+    references=(NGINX_CERT_DOC, CERTBOT_DOC),
+)
+def certificate_expiry(ctx: AuditContext) -> Outcome:
+    info = nginx_config(ctx)
+    paths: list[str] = []
+    for d in info.config.find("ssl_certificate"):
+        if d.args and d.args[0] not in paths:
+            paths.append(d.args[0])
+    if not paths:
+        raise NotApplicable("nginx has no ssl_certificate directives")
+    warn_days, fail_days = ctx.options.cert_warn_days, ctx.options.cert_fail_days
+    evidence: list[str] = []
+    checked: list[tuple[str, Certificate]] = []
+    problems: list[str] = []
+    unreadable: list[str] = []
+    dynamic = [p for p in paths if "$" in p]
+    for path in (p for p in paths if "$" not in p):
+        full = _cert_path(path)
+        read = ctx.try_read(full)
+        if read.denied:
+            unreadable.append(full)
+            evidence.append(f"{full}: cannot read (permission denied)")
+            continue
+        if not read.ok:
+            problems.append(f"{full} is {read.error}")
+            evidence.append(f"{full}: {read.error}")
+            continue
+        try:
+            chain = parse_pem(read.text or "")
+        except CertificateError as exc:
+            problems.append(f"{full} could not be parsed")
+            evidence.append(f"{full}: {exc}")
+            continue
+        earliest = min(chain, key=lambda c: c.not_after)
+        checked.append((full, earliest))
+        leaf = chain[0]
+        days = earliest.days_left(ctx.now)
+        when = "expired" if days < 0 else f"{int(days)} days left"
+        name = leaf.subject or "(no CN)"
+        note = "" if earliest is leaf else f", chain certificate {earliest.subject or '(no CN)'} expires first"
+        evidence.append(f"{full}: {name} valid until {earliest.not_after:%Y-%m-%d %H:%M} UTC ({when}{note})")
+    evidence += [f"{p}: skipped (uses a variable)" for p in dynamic]
+    evidence.append(f"source: {info.source}")
+    partial = info.partial or bool(unreadable) or bool(dynamic)
+    reason = "some certificate files could not be read" if unreadable else ""
+    if not checked and not problems:
+        if unreadable and not ctx.is_root:
+            raise NeedsRoot(f"cannot read {unreadable[0]}")
+        raise NotApplicable("every ssl_certificate path uses a variable")
+
+    expired = [(p, c) for p, c in checked if c.days_left(ctx.now) < 0]
+    failing = [(p, c) for p, c in checked if 0 <= c.days_left(ctx.now) < fail_days]
+    warning = [(p, c) for p, c in checked if fail_days <= c.days_left(ctx.now) < warn_days]
+
+    def names(items: list[tuple[str, Certificate]]) -> str:
+        return ", ".join(c.subject or p for p, c in items)
+
+    if expired or failing or problems:
+        parts = []
+        if expired:
+            parts.append(f"expired: {names(expired)}")
+        if failing:
+            parts.append(f"expires within {fail_days} days: {names(failing)}")
+        parts += problems
+        return Outcome(Status.FAIL, "; ".join(parts), cap(evidence, ctx.options.max_listed), partial, reason)
+    if warning:
+        return Outcome(
+            Status.WARN,
+            f"expires within {warn_days} days: {names(warning)}",
+            cap(evidence, ctx.options.max_listed),
+            partial,
+            reason,
+        )
+    soonest = min(c.days_left(ctx.now) for _p, c in checked)
+    return Outcome(
+        Status.PASS,
+        f"{len(checked)} certificate file(s) valid for at least {int(soonest)} more days",
+        cap(evidence, ctx.options.max_listed),
+        partial,
+        reason,
+    )
 
 
 @dataclass

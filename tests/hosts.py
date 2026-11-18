@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fakes import DENIED, FakeFS, FakeRunner, fail, ok
+from fakes import DENIED, FakeFS, FakeRunner, fail, make_cert_der, make_pem, ok
 from ubuntu_server_audit.context import AuditContext, AuditOptions
 from ubuntu_server_audit.kernel_values import HARDENED_SYSCTL
 
@@ -103,6 +103,13 @@ def hardened_host(*, root: bool = True) -> AuditContext:
     fs.add_dir("/var/www/example.com/public/uploads", uid=33, gid=33, mode=0o775)
     fs.add_dir("/var/www/example.com/tmp", mode=0o1777)  # sticky: fine
     fs.add_file("/etc/nginx/nginx.conf", "events {}\nhttp { server_tokens off; }\n")
+    fs.add_file(
+        "/etc/letsencrypt/live/example.com/fullchain.pem",
+        make_pem(
+            make_cert_der("example.com", NOW - timedelta(days=30), NOW + timedelta(days=60), "R11"),
+            make_cert_der("R11", NOW - timedelta(days=600), NOW + timedelta(days=500), "ISRG Root X1"),
+        ),
+    )
     fs.add_file("/etc/php/8.3/fpm/php.ini", "[PHP]\nexpose_php = Off\ndisplay_errors = Off\nlog_errors = On\n")
     fs.add_file("/etc/php/8.3/fpm/conf.d/10-opcache.ini", "zend_extension=opcache.so\n")
     fs.add_file("/etc/php/8.3/fpm/pool.d/www.conf", "[www]\nuser = www-data\nphp_admin_flag[log_errors] = on\n")

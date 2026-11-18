@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- WEB-005 (high): TLS certificates referenced by nginx `ssl_certificate` are checked for expiry: warning within
+  30 days, failure within 7 days or when expired, missing or unparseable. Every certificate in a bundle counts (an
+  expiring intermediate is reported), relative paths resolve against `/etc/nginx`, paths with variables are
+  skipped, and unreadable files are reported as needing root. The thresholds are `AuditOptions.cert_warn_days`
+  and `cert_fail_days`.
+- `ubuntu_server_audit.certs`: a dependency-free parser for the subject and validity period of PEM/DER
+  certificates.
+- Contributor community files: `CODE_OF_CONDUCT.md`, issue templates and a pull request template.
+
 ## [0.1.0] - 2026-11-15
 
 ### Added

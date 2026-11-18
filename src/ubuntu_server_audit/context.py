@@ -53,6 +53,8 @@ class AuditOptions:
     disk_fail_percent: int = 90
     journal_warn_bytes: int = 2 * 1024**3
     apt_lists_max_age_days: int = 7
+    cert_warn_days: int = 30
+    cert_fail_days: int = 7
     command_timeout: float = 60.0
 
 
